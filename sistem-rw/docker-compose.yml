@@ -1,0 +1,61 @@
+services:
+  web:
+    build: ./backend
+    container_name: satu-atap-rw-web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./public:/var/www/html
+      - ./backend:/var/www/backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_NAME=satu_atap_rw
+      - DB_USER=rw_user
+      - DB_PASS=rw_password
+    networks:
+      - rw-network
+
+  db:
+    image: mysql:8.0
+    container_name: satu-atap-rw-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: satu_atap_rw
+      MYSQL_USER: rw_user
+      MYSQL_PASSWORD: rw_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    networks:
+      - rw-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: satu-atap-rw-pma
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: rw_user
+      PMA_PASSWORD: rw_password
+    depends_on:
+      - db
+    networks:
+      - rw-network
+
+volumes:
+  db_data:
+
+networks:
+  rw-network:
+    driver: bridge
